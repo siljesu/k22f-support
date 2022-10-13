@@ -1,0 +1,26 @@
+target C {
+    threading: false,
+    build: "../scripts/build_nxp_unix.sh",
+};
+
+main reactor {
+    preamble {=
+	#include "../../SDK_2_12_0_FRDM-K22F/devices/MK22F51212/fsl_device_registers.h"
+	#include "../../SDK_2_12_0_FRDM-K22F/devices/MK22F51212/utilities/debug_console_lite/fsl_debug_console.h"
+	#include "../../SDK_2_12_0_FRDM-K22F/devices/MK22F51212/project_template/pin_mux.h"
+	#include "../../SDK_2_12_0_FRDM-K22F/devices/MK22F51212/project_template/clock_config.h"
+	#include "../../SDK_2_12_0_FRDM-K22F/devices/MK22F51212/project_template/board.h"
+	#include "../../SDK_2_12_0_FRDM-K22F/devices/MK22F51212/drivers/fsl_common.h"
+    =}
+    reaction(startup) {=
+        char ch;
+
+        //GPIO_PortSet(BOARD_LEDRGB_RED_GPIO, 1u << BOARD_LEDRGB_RED_PIN);
+        //GPIO_PortClear(BOARD_LEDRGB_RED_GPIO, 1u << BOARD_LEDRGB_RED_PIN);
+
+        PRINTF("hello world!\r\n");
+
+        ch = GETCHAR();
+        PUTCHAR(ch);
+    =}
+}

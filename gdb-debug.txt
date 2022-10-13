@@ -1,0 +1,11 @@
+# Segger: listen on port
+target remote localhost:2331
+
+# Segger: reset device
+monitor reset
+
+# Load symbols
+file ./debug/hello_world.elf
+
+# load/flash application file
+load ./debug/hello_world.elf
