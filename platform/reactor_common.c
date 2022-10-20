@@ -803,7 +803,9 @@ event_t* _lf_get_new_event() {
     event_t* e = (event_t*)pqueue_pop(recycle_q);
     if (e == NULL) {
         e = (event_t*)calloc(1, sizeof(struct event_t));
-        if (e == NULL) lf_print_error_and_exit("Out of memory!");
+        if (e == NULL) {
+            lf_print_error_and_exit("Out of memory!");
+        }
 #ifdef FEDERATED_DECENTRALIZED
         e->intended_tag = (tag_t) { .time = NEVER, .microstep = 0u};
 #endif

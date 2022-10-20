@@ -90,7 +90,7 @@ void lf_initialize_clock(void){
     PIT_SetTimerPeriod(PIT_BASEADDR, PIT_CHANNEL, MAX_TICKS);
     PIT_EnableInterrupts(PIT_BASEADDR, PIT_CHANNEL, kPIT_TimerInterruptEnable);
     EnableIRQ(PIT_IRQ_ID);
-    LF_PRINT_DEBUG("\r\nStarting channel No.0 ...");
+    PRINTF("\r\nStarting PIT channel with frequency: %u\r\n", PIT_SOURCE_CLOCK);
     PIT_StartTimer(PIT_BASEADDR, PIT_CHANNEL);
 }
 
@@ -122,6 +122,7 @@ int lf_clock_gettime(instant_t* t){
     // t is an instant, which is int64_t. How to convert?
     uint64_t time_us = COMBINE_HI_LO(_lf_time_us_high, COUNT_TO_USEC(ticks, PIT_SOURCE_CLOCK));
     *t = (instant_t)(time_us * 1000);
+    PRINTF("Calculated time: %lu us\r\n", time_us);
     return 0;
 }
 
@@ -130,6 +131,7 @@ int lf_clock_gettime(instant_t* t){
  * @return 0 if sleep was completed, or -1 if it was interrupted.
  */
 int lf_sleep(interval_t sleep_duration){
+    PRINTF("Going to sleep...\r\n");
     instant_t target_time;
     instant_t current_time;
     lf_clock_gettime(&current_time);
@@ -151,6 +153,7 @@ int lf_sleep_until(instant_t wakeup_time) {
     instant_t* t;
     lf_clock_gettime(t);
     interval_t duration = wakeup_time - *t;
+    PRINTF("Going to sleep for %lld ns\r\n", (int64_t)duration);
     lf_sleep(duration);
     return 0;
 }
