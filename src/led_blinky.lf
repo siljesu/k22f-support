@@ -7,17 +7,25 @@ main reactor {
     preamble {=
 	#include "../../SDK_2_12_0_FRDM-K22F/devices/MK22F51212/fsl_device_registers.h"
 	#include "../../SDK_2_12_0_FRDM-K22F/devices/MK22F51212/utilities/debug_console_lite/fsl_debug_console.h"
-	#include "../../SDK_2_12_0_FRDM-K22F/devices/MK22F51212/project_template/pin_mux.h"
 	#include "../../SDK_2_12_0_FRDM-K22F/devices/MK22F51212/project_template/clock_config.h"
 	#include "../../SDK_2_12_0_FRDM-K22F/devices/MK22F51212/project_template/board.h"
+    #include "../../SDK_2_12_0_FRDM-K22F/devices/MK22F51212/project_template/pin_mux.h"
 	#include "../../SDK_2_12_0_FRDM-K22F/devices/MK22F51212/drivers/fsl_common.h"
     =}
-    logical action a;
-    reaction(startup) -> a {=
-        PRINTF("hello world!\r\n");
-        lf_schedule(a, MSEC(10));
+
+    timer t(1 sec,1 sec)
+
+    reaction(startup) {=
+        PRINTF("Starting...\r\n");
+        LED_RED_INIT(1);
+        LED_GREEN_INIT(1);
+        LED_RED_ON();
+        LED_GREEN_OFF();
     =}
-    reaction(a) {=
-        PRINTF("reaction a\r\n");
+
+    reaction(t) {=
+        PRINTF("Toggling...\r\n");
+        LED_GREEN_TOGGLE();
+        LED_RED_TOGGLE();
     =}
 }
