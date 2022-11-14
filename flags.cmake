@@ -143,9 +143,9 @@ SET(CMAKE_EXE_LINKER_FLAGS_DEBUG " \
     -Xlinker \
     -Map=output.map \
     -Xlinker \
-	--defsym=__stack_size__=0x1000 \
-	-Xlinker \
-	--defsym=__heap_size__=0x4000 \
+    --defsym=__stack_size__=0x1000 \
+    -Xlinker \
+    --defsym=__heap_size__=0x4000 \
     -T${ProjSDKPath}/devices/MK22F51212/gcc/MK22FN512xxx12_flash.ld -static \
     -Wl,--print-memory-usage \
 ")
@@ -175,9 +175,9 @@ SET(CMAKE_EXE_LINKER_FLAGS_RELEASE " \
     -Xlinker \
     -Map=output.map \
     -Xlinker \
-	--defsym=__stack_size__=0x1000 \
-	-Xlinker \
-	--defsym=__heap_size__=0x4000 \
+    --defsym=__stack_size__=0x1000 \
+    -Xlinker \
+    --defsym=__heap_size__=0x4000 \
     -T${ProjSDKPath}/devices/MK22F51212/gcc/MK22FN512xxx12_flash.ld -static \
     -Wl,--print-memory-usage \
 ")
