@@ -142,7 +142,12 @@ SET(CMAKE_EXE_LINKER_FLAGS_DEBUG " \
     muldefs \
     -Xlinker \
     -Map=output.map \
+    -Xlinker \
+	--defsym=__stack_size__=0x1000 \
+	-Xlinker \
+	--defsym=__heap_size__=0x4000 \
     -T${ProjSDKPath}/devices/MK22F51212/gcc/MK22FN512xxx12_flash.ld -static \
+    -Wl,--print-memory-usage \
 ")
 SET(CMAKE_EXE_LINKER_FLAGS_RELEASE " \
     ${CMAKE_EXE_LINKER_FLAGS_RELEASE} \
@@ -169,5 +174,10 @@ SET(CMAKE_EXE_LINKER_FLAGS_RELEASE " \
     muldefs \
     -Xlinker \
     -Map=output.map \
+    -Xlinker \
+	--defsym=__stack_size__=0x1000 \
+	-Xlinker \
+	--defsym=__heap_size__=0x4000 \
     -T${ProjSDKPath}/devices/MK22F51212/gcc/MK22FN512xxx12_flash.ld -static \
+    -Wl,--print-memory-usage \
 ")
