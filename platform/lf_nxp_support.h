@@ -5,10 +5,11 @@
 #include <inttypes.h>
 #include "../../../SDK_2_12_0_FRDM-K22F/devices/MK22F51212/utilities/debug_console_lite/fsl_debug_console.h"
 
-#define PRINTF_TIME "%" PRId64
-#define PRINTF_MICROSTEP "%" PRIu32
+#define PRINTF_TIME "%d"
+#define PRINTF_MICROSTEP "%u"
 #define PRINTF_TAG "(" PRINTF_TIME ", " PRINTF_MICROSTEP ")"
-#define printf DbgConsole_Printf
+#define printf PRINTF
+//#define lf_print_error_and_exit DbgConsole_Vprintf
 #define PLATFORM_NXP 1
 
 /**

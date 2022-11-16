@@ -2117,13 +2117,13 @@ void termination(void) {
     if (elapsed_time >= 0LL) {
         char time_buffer[29]; // 28 bytes is enough for the largest 64 bit number: 9,223,372,036,854,775,807
         lf_comma_separated_time(time_buffer, elapsed_time);
-        printf("---- Elapsed logical time (in nsec): %s\n", time_buffer);
+        printf("---- Elapsed logical time (in nsec): %d\n", time_buffer);
 
         // If physical_start_time is 0, then execution didn't get far enough along
         // to initialize this.
         if (physical_start_time > 0LL) {
         	lf_comma_separated_time(time_buffer, lf_time_physical_elapsed());
-            printf("---- Elapsed physical time (in nsec): %s\n", time_buffer);
+            printf("---- Elapsed physical time (in nsec): %d\n", time_buffer);
         }
     }
     _lf_free_all_reactors();
