@@ -1,0 +1,11 @@
+# Segger: listen on port
+target remote localhost:2331
+
+# Segger: reset device
+monitor reset
+
+# Load symbols
+file ~/lf/nxp-support/debug/led_blinky.elf
+
+# load/flash application file
+load ~/lf/nxp-support/debug/led_blinky.elf
