@@ -110,6 +110,8 @@ int lf_clock_gettime(instant_t* t){
     }
     uint32_t now_us_hi_pre = _lf_time_us_high;
     uint32_t ticks = MAX_TICKS - PIT_GetCurrentTimerCount(PIT_BASEADDR, PIT_CHANNEL); //timer is counting down
+    PRINTF("\r\nRead %u ticks\r\n", ticks);
+    PRINTF("\r\nConverted to %u us\r\n", COUNT_TO_USEC(ticks, PIT_SOURCE_CLOCK));
     uint32_t now_us_hi_post = _lf_time_us_high;
 
     if (now_us_hi_pre != now_us_hi_post) {
@@ -121,8 +123,13 @@ int lf_clock_gettime(instant_t* t){
     // us to ns by multiplying with 1000.
     // t is an instant, which is int64_t. How to convert?
     uint64_t time_us = COMBINE_HI_LO(_lf_time_us_high, COUNT_TO_USEC(ticks, PIT_SOURCE_CLOCK));
-    *t = (instant_t)(time_us * 1000);
-    PRINTF("Calculated time: %lu us\r\n", time_us);
+    uint64_t time_ns = time_us * 2;
+    PRINTF("\r\nConverted to %u us \r\n", time_us);
+    PRINTF("\r\nConverted finally to %u ns (times 2) \r\n", time_ns);
+    *t = ((instant_t)time_us) * 1000U;
+    PRINTF("\r\nConverted finally to %d ns (instant) \r\n", *t);
+
+    //PRINTF("Calculated time: " PRINTF_TIME " us\r\n", time_us);
     return 0;
 }
 
@@ -131,7 +138,7 @@ int lf_clock_gettime(instant_t* t){
  * @return 0 if sleep was completed, or -1 if it was interrupted.
  */
 int lf_sleep(interval_t sleep_duration){
-    PRINTF("Going to sleep...\r\n");
+    //PRINTF("Going to sleep...\r\n");
     instant_t target_time;
     instant_t current_time;
     lf_clock_gettime(&current_time);
@@ -153,7 +160,7 @@ int lf_sleep_until(instant_t wakeup_time) {
     instant_t* t;
     lf_clock_gettime(t);
     interval_t duration = wakeup_time - *t;
-    PRINTF("Going to sleep for %lld ns\r\n", (int64_t)duration);
+    //PRINTF("Going to sleep for " PRINTF_TIME " ns\r\n", (int64_t)duration);
     lf_sleep(duration);
     return 0;
 }
