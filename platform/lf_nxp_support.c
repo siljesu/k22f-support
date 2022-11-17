@@ -14,9 +14,12 @@
 #include "../../../../SDK_2_12_0_FRDM-K22F/devices/MK22F51212/drivers/fsl_pit.h"
 
 #define PIT_BASEADDR PIT
-#define PIT_CHANNEL  kPIT_Chnl_0
-#define PIT_OVERFLOW_HANDLER   PIT0_IRQHandler
-#define PIT_IRQ_ID        PIT0_IRQn
+#define PIT0_CHANNEL  kPIT_Chnl_0
+#define PIT1_CHANNEL  kPIT_Chnl_1
+#define PIT0_OVERFLOW_HANDLER   PIT0_IRQHandler
+#define PIT1_TIMER_HANDLER   PIT1_IRQHandler
+#define PIT0_IRQ_ID        PIT0_IRQn
+#define PIT1_IRQ_ID        PIT1_IRQn
 /* Get source clock for PIT driver */
 #define PIT_SOURCE_CLOCK CLOCK_GetFreq(kCLOCK_BusClk)
 
@@ -26,13 +29,26 @@
 static volatile uint32_t _lf_time_us_high = 0;
 static volatile uint32_t regPrimask;
 interval_t _lf_time_epoch_offset = 0LL;
-// physical_action_occured_flag
+volatile bool _lf_sleep_completed = false;
 
-void PIT_OVERFLOW_HANDLER(void)
+void PIT0_OVERFLOW_HANDLER(void)
 {
     /* Clear interrupt flag.*/
-    PIT_ClearStatusFlags(PIT_BASEADDR, PIT_CHANNEL, kPIT_TimerFlag);
+    PIT_ClearStatusFlags(PIT_BASEADDR, PIT0_CHANNEL, kPIT_TimerFlag);
     _lf_time_us_high += 1;
+    
+    /* Added for, and affects, all PIT handlers. For CPU clock which is much larger than the IP bus clock,
+     * CPU can run out of the interrupt handler before the interrupt flag being cleared, resulting in the
+     * CPU's entering the handler again and again. Adding DSB can prevent the issue from happening.
+     */
+    __DSB();
+}
+
+void PIT1_TIMER_HANDLER(void)
+{
+    /* Clear interrupt flag.*/
+    PIT_ClearStatusFlags(PIT_BASEADDR, PIT1_CHANNEL, kPIT_TimerFlag);
+    _lf_sleep_completed = 1;
     
     /* Added for, and affects, all PIT handlers. For CPU clock which is much larger than the IP bus clock,
      * CPU can run out of the interrupt handler before the interrupt flag being cleared, resulting in the
@@ -86,13 +102,19 @@ void lf_initialize_clock(void){
     BOARD_InitBootClocks();
     BOARD_InitDebugConsole();
 
-    //PIT_GetDefaultConfig(&pitConfig);
+    //Init PIT0 which is used as a free running counter
     PIT_Init(PIT_BASEADDR, &pitConfig);
-    PIT_SetTimerPeriod(PIT_BASEADDR, PIT_CHANNEL, MAX_TICKS);
-    PIT_EnableInterrupts(PIT_BASEADDR, PIT_CHANNEL, kPIT_TimerInterruptEnable);
-    EnableIRQ(PIT_IRQ_ID);
+    PIT_SetTimerPeriod(PIT_BASEADDR, PIT0_CHANNEL, MAX_TICKS);
+    PIT_EnableInterrupts(PIT_BASEADDR, PIT0_CHANNEL, kPIT_TimerInterruptEnable);
+    EnableIRQ(PIT0_IRQ_ID);
+
+    //Init PIT1 which is used for handling sleep interrupts
+    PIT_SetTimerPeriod(PIT_BASEADDR, PIT1_CHANNEL, MAX_TICKS);
+    PIT_EnableInterrupts(PIT_BASEADDR, PIT1_CHANNEL, kPIT_TimerInterruptEnable);
+    EnableIRQ(PIT1_IRQ_ID);
+
     PRINTF("\r\nStarting PIT channel with frequency: %u\r\n", PIT_SOURCE_CLOCK);
-    PIT_StartTimer(PIT_BASEADDR, PIT_CHANNEL);
+    PIT_StartTimer(PIT_BASEADDR, PIT0_CHANNEL);
 }
 
 /**
@@ -152,11 +174,29 @@ int lf_sleep(interval_t sleep_duration){
  * @return int 0 if sleep completed, or -1 if it was interrupted.
  */
 int lf_sleep_until(instant_t wakeup_time) {
-    instant_t* t;
-    lf_clock_gettime(t);
-    interval_t duration = wakeup_time - *t;
-    //PRINTF("Going to sleep for " PRINTF_TIME " ns\r\n", (int64_t)duration);
-    lf_sleep(duration);
-    return 0;
+    _lf_sleep_completed = false;
+    instant_t now;
+    lf_clock_gettime(&now);
+    interval_t duration = wakeup_time - now;
+
+    assert(in_critical_section());
+    lf_critical_section_exit();
+
+    PIT_SetTimerPeriod(PIT_BASEADDR, PIT1_CHANNEL, USEC_TO_COUNT(duration/1000LL, PIT_SOURCE_CLOCK));
+    PIT_StartTimer(PIT_BASEADDR, PIT1_CHANNEL);
+
+    //low power mode - how does it exit? Any interrupt? Exit upon timer interrupt, which can originate from several sources.
+
+
+    //disable timer
+    PIT_StopTimer(PIT_BASEADDR, PIT1_CHANNEL);
+
+    lf_critical_section_enter();
+
+    if (_lf_sleep_completed) {
+        return 0;
+    } else {
+        return -1
+    }
 }
 
