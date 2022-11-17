@@ -5,8 +5,8 @@
 #include <inttypes.h>
 #include "../../../SDK_2_12_0_FRDM-K22F/devices/MK22F51212/utilities/debug_console_lite/fsl_debug_console.h"
 
-#define PRINTF_TIME "%d"
-#define PRINTF_MICROSTEP "%u"
+#define PRINTF_TIME "%" PRId64
+#define PRINTF_MICROSTEP "%" PRIu32
 #define PRINTF_TAG "(" PRINTF_TIME ", " PRINTF_MICROSTEP ")"
 #define printf PRINTF
 //#define lf_print_error_and_exit DbgConsole_Vprintf
@@ -27,3 +27,6 @@ typedef int64_t _interval_t;
  * Microstep instant.
  */
 typedef uint32_t _microstep_t;
+
+
+#define _LF_CLOCK CLOCK_MONOTONIC

@@ -25,6 +25,7 @@
 
 static volatile uint32_t _lf_time_us_high = 0;
 static volatile uint32_t regPrimask;
+interval_t _lf_time_epoch_offset = 0LL;
 // physical_action_occured_flag
 
 void PIT_OVERFLOW_HANDLER(void)
@@ -110,8 +111,6 @@ int lf_clock_gettime(instant_t* t){
     }
     uint32_t now_us_hi_pre = _lf_time_us_high;
     uint32_t ticks = MAX_TICKS - PIT_GetCurrentTimerCount(PIT_BASEADDR, PIT_CHANNEL); //timer is counting down
-    PRINTF("\r\nRead %u ticks\r\n", ticks);
-    PRINTF("\r\nConverted to %u us\r\n", COUNT_TO_USEC(ticks, PIT_SOURCE_CLOCK));
     uint32_t now_us_hi_post = _lf_time_us_high;
 
     if (now_us_hi_pre != now_us_hi_post) {
@@ -123,13 +122,9 @@ int lf_clock_gettime(instant_t* t){
     // us to ns by multiplying with 1000.
     // t is an instant, which is int64_t. How to convert?
     uint64_t time_us = COMBINE_HI_LO(_lf_time_us_high, COUNT_TO_USEC(ticks, PIT_SOURCE_CLOCK));
-    uint64_t time_ns = time_us * 2;
-    PRINTF("\r\nConverted to %u us \r\n", time_us);
-    PRINTF("\r\nConverted finally to %u ns (times 2) \r\n", time_ns);
     *t = ((instant_t)time_us) * 1000U;
-    PRINTF("\r\nConverted finally to %d ns (instant) \r\n", *t);
+    //PRINTF("\r\nConverted finally to " PRINTF_TIME " ns (instant) \r\n", *t);
 
-    //PRINTF("Calculated time: " PRINTF_TIME " us\r\n", time_us);
     return 0;
 }
 
