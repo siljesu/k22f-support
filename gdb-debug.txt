@@ -5,7 +5,7 @@ target remote localhost:2331
 monitor reset
 
 # Load symbols
-file ./debug/hello_world.elf
+file ~/lf/nxp-support/debug/hello_world.elf
 
 # load/flash application file
-load ./debug/hello_world.elf
+load ~/lf/nxp-support/debug/hello_world.elf
