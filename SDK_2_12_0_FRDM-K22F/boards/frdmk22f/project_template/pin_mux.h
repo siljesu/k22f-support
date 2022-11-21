@@ -27,6 +27,11 @@ extern "C" {
  */
 void BOARD_InitBootPins(void);
 
+
+#define WAKEUP_GPIO             GPIOA
+#define WAKEUP_GPIO_PORT        PORTA
+#define WAKEUP_GPIO_PIN         10
+
 /*!
  * @brief Configures pin routing and optionally pin electrical features.
  *

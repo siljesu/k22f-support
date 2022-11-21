@@ -9,7 +9,6 @@
 #define PRINTF_MICROSTEP "%" PRIu32
 #define PRINTF_TAG "(" PRINTF_TIME ", " PRINTF_MICROSTEP ")"
 #define printf PRINTF
-//#define lf_print_error_and_exit DbgConsole_Vprintf
 #define PLATFORM_NXP 1
 
 /**

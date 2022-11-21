@@ -12,8 +12,11 @@
 #include "../../../../SDK_2_12_0_FRDM-K22F/devices/MK22F51212/project_template/clock_config.h"
 #include "../../../../SDK_2_12_0_FRDM-K22F/devices/MK22F51212/project_template/board.h"
 #include "../../../../SDK_2_12_0_FRDM-K22F/devices/MK22F51212/drivers/fsl_pit.h"
+#include "../../../../SDK_2_12_0_FRDM-K22F/devices/MK22F51212/drivers/fsl_port.h"
+#include "../../../../SDK_2_12_0_FRDM-K22F/devices/MK22F51212/drivers/fsl_smc.h"
 
 #define PIT_BASEADDR PIT
+#define SMC_BASEADDR SMC
 #define PIT0_CHANNEL  kPIT_Chnl_0
 #define PIT1_CHANNEL  kPIT_Chnl_1
 #define PIT0_OVERFLOW_HANDLER   PIT0_IRQHandler
@@ -22,6 +25,15 @@
 #define PIT1_IRQ_ID        PIT1_IRQn
 /* Get source clock for PIT driver */
 #define PIT_SOURCE_CLOCK CLOCK_GetFreq(kCLOCK_BusClk)
+
+// PTA10 as wakeup GPIO pin
+#define WAKEUP_GPIO             GPIOA
+#define WAKEUP_GPIO_PORT        PORTA
+#define WAKEUP_GPIO_PIN         10
+#define WAKEUP_GPIO_IRQ         PORTA_IRQn
+#define WAKEUP_GPIO_IRQ_HANDLER PORTA_IRQHandler
+#define WAKEUP_GPIO_IRQ_TYPE    kPORT_InterruptEitherEdge
+
 
 #define MAX_TICKS UINT32_MAX
 #define COMBINE_HI_LO(hi,lo) ((((uint64_t) hi) << 32) | ((uint64_t) lo))
@@ -33,6 +45,7 @@ volatile bool _lf_sleep_completed = false;
 
 void PIT0_OVERFLOW_HANDLER(void)
 {
+    PRINTF("\r\nPIT0 overflow \r\n");
     /* Clear interrupt flag.*/
     PIT_ClearStatusFlags(PIT_BASEADDR, PIT0_CHANNEL, kPIT_TimerFlag);
     _lf_time_us_high += 1;
@@ -46,6 +59,7 @@ void PIT0_OVERFLOW_HANDLER(void)
 
 void PIT1_TIMER_HANDLER(void)
 {
+    PRINTF("\r\nPIT1 overflow \r\n");
     /* Clear interrupt flag.*/
     PIT_ClearStatusFlags(PIT_BASEADDR, PIT1_CHANNEL, kPIT_TimerFlag);
     _lf_sleep_completed = 1;
@@ -54,6 +68,22 @@ void PIT1_TIMER_HANDLER(void)
      * CPU can run out of the interrupt handler before the interrupt flag being cleared, resulting in the
      * CPU's entering the handler again and again. Adding DSB can prevent the issue from happening.
      */
+    __DSB();
+}
+
+/*!
+ * @brief PTA10 pin interrupt handler.
+ */
+void WAKEUP_GPIO_IRQ_HANDLER(void)
+{
+    if ((1U << WAKEUP_GPIO_PIN) & PORT_GetPinsInterruptFlags(WAKEUP_GPIO_PORT))
+    {
+        /* Disable interrupt. */
+        //PORT_SetPinInterruptConfig(WAKEUP_GPIO_PORT, WAKEUP_GPIO_PIN, kPORT_InterruptOrDMADisabled);
+        PORT_ClearPinsInterruptFlags(WAKEUP_GPIO_PORT, (1U << WAKEUP_GPIO_PIN));
+    }
+    /* Add for ARM errata 838869, affects Cortex-M4, Cortex-M4F Store immediate overlapping
+    exception return operation might vector to incorrect interrupt */
     __DSB();
 }
 
@@ -87,6 +117,8 @@ int lf_critical_section_exit(){
  * @return 0 on success, platform-specific error number otherwise.
  */
 int lf_notify_of_event(){
+    PRINTF("\r\nPhysical action \r\n");
+    GPIO_PortToggle(WAKEUP_GPIO, 1U << WAKEUP_GPIO_PIN);
     return 0;
 }
 
@@ -113,6 +145,10 @@ void lf_initialize_clock(void){
     PIT_EnableInterrupts(PIT_BASEADDR, PIT1_CHANNEL, kPIT_TimerInterruptEnable);
     EnableIRQ(PIT1_IRQ_ID);
 
+    //Init GPIO pin interrupt
+    NVIC_EnableIRQ(WAKEUP_GPIO_IRQ);
+    PORT_SetPinInterruptConfig(WAKEUP_GPIO_PORT, WAKEUP_GPIO_PIN, WAKEUP_GPIO_IRQ_TYPE);
+
     PRINTF("\r\nStarting PIT channel with frequency: %u\r\n", PIT_SOURCE_CLOCK);
     PIT_StartTimer(PIT_BASEADDR, PIT0_CHANNEL);
 }
@@ -132,12 +168,12 @@ int lf_clock_gettime(instant_t* t){
         return -1;
     }
     uint32_t now_us_hi_pre = _lf_time_us_high;
-    uint32_t ticks = MAX_TICKS - PIT_GetCurrentTimerCount(PIT_BASEADDR, PIT_CHANNEL); //timer is counting down
+    uint32_t ticks = MAX_TICKS - PIT_GetCurrentTimerCount(PIT_BASEADDR, PIT0_CHANNEL); //timer is counting down
     uint32_t now_us_hi_post = _lf_time_us_high;
 
     if (now_us_hi_pre != now_us_hi_post) {
         //overflow occured, read new value
-        ticks = MAX_TICKS - PIT_GetCurrentTimerCount(PIT_BASEADDR, PIT_CHANNEL); //timer is counting down
+        ticks = MAX_TICKS - PIT_GetCurrentTimerCount(PIT_BASEADDR, PIT0_CHANNEL); //timer is counting down
     }
 
     // ticks to us: macro from fsl_common_arm.h
@@ -160,10 +196,7 @@ int lf_sleep(interval_t sleep_duration){
     instant_t current_time;
     lf_clock_gettime(&current_time);
     target_time = current_time + sleep_duration;
-    while (current_time <= target_time) {
-        lf_clock_gettime(&current_time);
-    }
-    return 0;
+    return lf_sleep_until(target_time);
 }
 
 
@@ -179,24 +212,35 @@ int lf_sleep_until(instant_t wakeup_time) {
     lf_clock_gettime(&now);
     interval_t duration = wakeup_time - now;
 
-    assert(in_critical_section());
     lf_critical_section_exit();
 
     PIT_SetTimerPeriod(PIT_BASEADDR, PIT1_CHANNEL, USEC_TO_COUNT(duration/1000LL, PIT_SOURCE_CLOCK));
     PIT_StartTimer(PIT_BASEADDR, PIT1_CHANNEL);
 
     //low power mode - how does it exit? Any interrupt? Exit upon timer interrupt, which can originate from several sources.
+    PRINTF("\r\nEntering wait mode \r\n");
+    SMC_PreEnterWaitModes();
+    SMC_SetPowerModeWait(SMC_BASEADDR);
+    SMC_PostExitWaitModes();
 
+    //while(!_lf_sleep_completed OR _lf_sleep_interrupted) {}
+
+    SMC_SetPowerModeRun(SMC_BASEADDR);
+    while (kSMC_PowerStateRun != SMC_GetPowerModeState(SMC))
+    {
+    }
 
     //disable timer
     PIT_StopTimer(PIT_BASEADDR, PIT1_CHANNEL);
-
+    PRINTF("\r\nExited wait mode \r\n");
     lf_critical_section_enter();
 
     if (_lf_sleep_completed) {
+        PRINTF("\r\nSleep completed \r\n");
         return 0;
     } else {
-        return -1
+        PRINTF("\r\nSleep interrupted \r\n");
+        return -1;
     }
 }
 

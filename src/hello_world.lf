@@ -15,7 +15,7 @@ main reactor {
     logical action a;
     reaction(startup) -> a {=
         PRINTF("hello world!\r\n");
-        lf_schedule(a, MSEC(10));
+        lf_schedule(a, SEC(10));
     =}
     reaction(a) {=
         PRINTF("reaction a\r\n");

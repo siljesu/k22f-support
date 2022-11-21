@@ -127,6 +127,14 @@ void BOARD_InitPins(void)
     /* PORTA2 (pin 24) is configured as TRACE_SWO */
     PORT_SetPinMux(PORTA, 2U, kPORT_MuxAlt7);
 
+    gpio_pin_config_t WAKEUP_PIN_config = {
+        .pinDirection = kGPIO_DigitalOutput,
+        .outputLogic = 0
+    };
+    /* Initialize GPIO functionality on pin PTA10  */
+    GPIO_PinInit(WAKEUP_GPIO, WAKEUP_GPIO_PIN, &WAKEUP_PIN_config);
+
+
     PORTA->PCR[2] = ((PORTA->PCR[2] &
                       /* Mask bits to zero which are setting */
                       (~(PORT_PCR_PS_MASK | PORT_PCR_PE_MASK | PORT_PCR_ISF_MASK)))
