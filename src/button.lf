@@ -1,0 +1,63 @@
+target C {
+    threading: false,
+    build: "../scripts/build_nxp_unix.sh",
+};
+
+main reactor {
+
+    preamble {=
+        #include "../../SDK_2_12_0_FRDM-K22F/devices/MK22F51212/fsl_device_registers.h"
+        #include "../../SDK_2_12_0_FRDM-K22F/devices/MK22F51212/utilities/debug_console_lite/fsl_debug_console.h"
+        #include "../../SDK_2_12_0_FRDM-K22F/devices/MK22F51212/project_template/pin_mux.h"
+        #include "../../SDK_2_12_0_FRDM-K22F/devices/MK22F51212/project_template/clock_config.h"
+        #include "../../SDK_2_12_0_FRDM-K22F/devices/MK22F51212/project_template/board.h"
+        #include "../../SDK_2_12_0_FRDM-K22F/devices/MK22F51212/drivers/fsl_common.h"
+        #include "../../SDK_2_12_0_FRDM-K22F/devices/MK22F51212/drivers/fsl_port.h"
+        #include "../../SDK_2_12_0_FRDM-K22F/devices/MK22F51212/drivers/fsl_gpio.h"
+    
+        #define APP_WAKEUP_BUTTON_GPIO        BOARD_SW2_GPIO
+        #define APP_WAKEUP_BUTTON_PORT        BOARD_SW2_PORT
+        #define APP_WAKEUP_BUTTON_GPIO_PIN    BOARD_SW2_GPIO_PIN
+        #define APP_WAKEUP_BUTTON_IRQ         BOARD_SW2_IRQ
+        #define APP_WAKEUP_BUTTON_IRQ_HANDLER BOARD_SW2_IRQ_HANDLER
+        #define APP_WAKEUP_BUTTON_IRQ_TYPE    kPORT_InterruptFallingEdge
+    
+        #define FSL_FEATURE_PORT_PCR_MUX_WIDTH
+    
+        void* button_press_action;
+    
+        void APP_WAKEUP_BUTTON_IRQ_HANDLER(void) {
+            if ((1U << APP_WAKEUP_BUTTON_GPIO_PIN) & PORT_GetPinsInterruptFlags(APP_WAKEUP_BUTTON_PORT))
+            {
+                PORT_ClearPinsInterruptFlags(APP_WAKEUP_BUTTON_PORT, (1U << APP_WAKEUP_BUTTON_GPIO_PIN));
+                PRINTF("push\r\n");
+                lf_schedule(button_press_action, 0);
+            }
+            /* Add for ARM errata 838869, affects Cortex-M4, Cortex-M4F Store immediate overlapping
+            exception return operation might vector to incorrect interrupt */
+            __DSB();
+        }
+    =}
+
+    state last_pressed: time(0);
+    physical action pressed;
+
+    reaction(startup) -> pressed {=
+        PRINTF("Starting...\r\n");
+
+        NVIC_EnableIRQ(APP_WAKEUP_BUTTON_IRQ);
+        PORT_SetPinInterruptConfig(APP_WAKEUP_BUTTON_PORT, APP_WAKEUP_BUTTON_GPIO_PIN, APP_WAKEUP_BUTTON_IRQ_TYPE);
+
+        button_press_action = pressed;
+        PRINTF("Finished setup\r\n");
+    =}
+
+    reaction(pressed) {=
+        if (self->last_pressed == 0 || lf_time_logical() - self->last_pressed > MSEC(150)) {
+
+            self->last_pressed = lf_time_logical();
+            PRINTF("Button pushed at time %lld\r\n", lf_time_logical());
+
+        }
+    =}
+}

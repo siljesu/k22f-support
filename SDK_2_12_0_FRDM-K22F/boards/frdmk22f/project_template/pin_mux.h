@@ -32,6 +32,24 @@ void BOARD_InitBootPins(void);
 #define WAKEUP_GPIO_PORT        PORTA
 #define WAKEUP_GPIO_PIN         10
 
+
+#define APP_WAKEUP_BUTTON_GPIO        BOARD_SW2_GPIO
+#define APP_WAKEUP_BUTTON_PORT        BOARD_SW2_PORT
+#define APP_WAKEUP_BUTTON_GPIO_PIN    BOARD_SW2_GPIO_PIN
+#define APP_WAKEUP_BUTTON_IRQ         BOARD_SW2_IRQ
+#define APP_WAKEUP_BUTTON_IRQ_HANDLER BOARD_SW2_IRQ_HANDLER
+#define APP_WAKEUP_BUTTON_IRQ_TYPE    kPORT_InterruptFallingEdge
+
+/* Symbols to be used with GPIO driver */
+#define BOARD_SW2_GPIO GPIOC               /*!<@brief GPIO peripheral base pointer */
+#define BOARD_SW2_GPIO_PIN_MASK (1U << 1U) /*!<@brief GPIO pin mask */
+
+/* Symbols to be used with PORT driver */
+#define BOARD_SW2_PORT PORTC               /*!<@brief PORT peripheral base pointer */
+#define BOARD_SW2_PIN 1U                   /*!<@brief PORT pin number */
+#define BOARD_SW2_PIN_MASK (1U << 1U)      /*!<@brief PORT pin mask */
+                                           /* @} */
+
 /*!
  * @brief Configures pin routing and optionally pin electrical features.
  *

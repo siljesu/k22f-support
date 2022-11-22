@@ -123,16 +123,10 @@ void BOARD_InitPins(void)
 {
     /* Port A Clock Gate Control: Clock enabled */
     CLOCK_EnableClock(kCLOCK_PortA);
+    CLOCK_EnableClock(kCLOCK_PortC);
 
     /* PORTA2 (pin 24) is configured as TRACE_SWO */
     PORT_SetPinMux(PORTA, 2U, kPORT_MuxAlt7);
-
-    gpio_pin_config_t WAKEUP_PIN_config = {
-        .pinDirection = kGPIO_DigitalOutput,
-        .outputLogic = 0
-    };
-    /* Initialize GPIO functionality on pin PTA10  */
-    GPIO_PinInit(WAKEUP_GPIO, WAKEUP_GPIO_PIN, &WAKEUP_PIN_config);
 
 
     PORTA->PCR[2] = ((PORTA->PCR[2] &
@@ -145,6 +139,23 @@ void BOARD_InitPins(void)
 
                      /* Pull Enable: Internal pullup or pulldown resistor is not enabled on the corresponding pin. */
                      | PORT_PCR_PE(kPORT_PullDisable));
+
+    const port_pin_config_t SW2 = {/* Internal pull-up resistor is enabled */
+                                   kPORT_PullUp,
+                                   /* Fast slew rate is configured */
+                                   kPORT_FastSlewRate,
+                                   /* Passive filter is disabled */
+                                   kPORT_PassiveFilterDisable,
+                                   /* Open drain is disabled */
+                                   kPORT_OpenDrainDisable,
+                                   /* Low drive strength is configured */
+                                   kPORT_LowDriveStrength,
+                                   /* Pin is configured as PTC1 */
+                                   kPORT_MuxAsGpio,
+                                   /* Pin Control Register fields [15:0] are not locked */
+                                   kPORT_UnlockRegister};
+    /* PORTC1 (pin 44) is configured as PTC1 */
+    PORT_SetPinConfig(BOARD_SW2_PORT, BOARD_SW2_PIN, &SW2);
 }
 
 /* clang-format off */
