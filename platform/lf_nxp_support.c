@@ -141,7 +141,6 @@ void lf_initialize_clock(void){
     EnableIRQ(PIT0_IRQ_ID);
 
     //Init PIT1 which is used for handling sleep interrupts
-    PIT_SetTimerPeriod(PIT_BASEADDR, PIT1_CHANNEL, MAX_TICKS);
     PIT_EnableInterrupts(PIT_BASEADDR, PIT1_CHANNEL, kPIT_TimerInterruptEnable);
     EnableIRQ(PIT1_IRQ_ID);
 
@@ -191,46 +190,26 @@ int lf_clock_gettime(instant_t* t){
  * @return 0 if sleep was completed, or -1 if it was interrupted.
  */
 int lf_sleep(interval_t sleep_duration){
-    //PRINTF("Going to sleep...\r\n");
-    instant_t target_time;
-    instant_t current_time;
-    lf_clock_gettime(&current_time);
-    target_time = current_time + sleep_duration;
-    return lf_sleep_until(target_time);
-}
 
-
-/**
- * @brief Sleep until the given wakeup time.
- * 
- * @param wakeup_time The time instant at which to wake up.
- * @return int 0 if sleep completed, or -1 if it was interrupted.
- */
-int lf_sleep_until(instant_t wakeup_time) {
     _lf_sleep_completed = false;
-    instant_t now;
-    lf_clock_gettime(&now);
-    interval_t duration = wakeup_time - now;
 
     lf_critical_section_exit();
 
-    PIT_SetTimerPeriod(PIT_BASEADDR, PIT1_CHANNEL, USEC_TO_COUNT(duration/1000LL, PIT_SOURCE_CLOCK));
+    PIT_SetTimerPeriod(PIT_BASEADDR, PIT1_CHANNEL, USEC_TO_COUNT(sleep_duration/1000LL, PIT_SOURCE_CLOCK));
     PIT_StartTimer(PIT_BASEADDR, PIT1_CHANNEL);
 
-    //low power mode - how does it exit? Any interrupt? Exit upon timer interrupt, which can originate from several sources.
+    //low power mode - Exit upon interrupt, which can originate from several sources.
     PRINTF("\r\nEntering wait mode \r\n");
     SMC_PreEnterWaitModes();
     SMC_SetPowerModeWait(SMC_BASEADDR);
     SMC_PostExitWaitModes();
-
-    //while(!_lf_sleep_completed OR _lf_sleep_interrupted) {}
 
     SMC_SetPowerModeRun(SMC_BASEADDR);
     while (kSMC_PowerStateRun != SMC_GetPowerModeState(SMC))
     {
     }
 
-    //disable timer
+    //disable timer PIT1
     PIT_StopTimer(PIT_BASEADDR, PIT1_CHANNEL);
     PRINTF("\r\nExited wait mode \r\n");
     lf_critical_section_enter();
@@ -242,5 +221,21 @@ int lf_sleep_until(instant_t wakeup_time) {
         PRINTF("\r\nSleep interrupted \r\n");
         return -1;
     }
+}
+
+
+/**
+ * @brief Sleep until the given wakeup time.
+ * 
+ * @param wakeup_time The time instant at which to wake up.
+ * @return int 0 if sleep completed, or -1 if it was interrupted.
+ */
+int lf_sleep_until(instant_t wakeup_time) {
+
+    instant_t now;
+    lf_clock_gettime(&now);
+    interval_t duration = wakeup_time - now;
+
+    return lf_sleep(duration);    
 }
 
