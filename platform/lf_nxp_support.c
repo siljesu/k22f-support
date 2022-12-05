@@ -23,31 +23,30 @@
 #define PIT1_TIMER_HANDLER   PIT1_IRQHandler
 #define PIT0_IRQ_ID        PIT0_IRQn
 #define PIT1_IRQ_ID        PIT1_IRQn
+
 /* Get source clock for PIT driver */
 #define PIT_SOURCE_CLOCK CLOCK_GetFreq(kCLOCK_BusClk)
 
-// PTA10 as wakeup GPIO pin
-#define WAKEUP_GPIO             GPIOA
-#define WAKEUP_GPIO_PORT        PORTA
-#define WAKEUP_GPIO_PIN         10
-#define WAKEUP_GPIO_IRQ         PORTA_IRQn
-#define WAKEUP_GPIO_IRQ_HANDLER PORTA_IRQHandler
-#define WAKEUP_GPIO_IRQ_TYPE    kPORT_InterruptEitherEdge
-
+#define ACTION_NOTIFY_GPIO             GPIOA
+#define ACTION_NOTIFY_GPIO_PORT        PORTA
+#define ACTION_NOTIFY_GPIO_PIN         10
+#define ACTION_NOTIFY_GPIO_IRQ         PORTA_IRQn
+#define ACTION_NOTIFY_GPIO_IRQ_HANDLER PORTA_IRQHandler
+#define ACTION_NOTIFY_GPIO_IRQ_TYPE    kPORT_InterruptEitherEdge
 
 #define MAX_TICKS UINT32_MAX
 #define COMBINE_HI_LO(hi,lo) ((((uint64_t) hi) << 32) | ((uint64_t) lo))
 
 static volatile uint32_t _lf_time_us_high = 0;
 static volatile uint32_t regPrimask;
-interval_t _lf_time_epoch_offset = 0LL;
 volatile bool _lf_sleep_completed = false;
 
 void PIT0_OVERFLOW_HANDLER(void)
 {
-    PRINTF("\r\nPIT0 overflow \r\n");
     /* Clear interrupt flag.*/
     PIT_ClearStatusFlags(PIT_BASEADDR, PIT0_CHANNEL, kPIT_TimerFlag);
+
+    /* Increment highest 32 bit clock value */
     _lf_time_us_high += 1;
     
     /* Added for, and affects, all PIT handlers. For CPU clock which is much larger than the IP bus clock,
@@ -59,9 +58,10 @@ void PIT0_OVERFLOW_HANDLER(void)
 
 void PIT1_TIMER_HANDLER(void)
 {
-    PRINTF("\r\nPIT1 overflow \r\n");
     /* Clear interrupt flag.*/
     PIT_ClearStatusFlags(PIT_BASEADDR, PIT1_CHANNEL, kPIT_TimerFlag);
+
+    /* Set sleep completed flag */
     _lf_sleep_completed = 1;
     
     /* Added for, and affects, all PIT handlers. For CPU clock which is much larger than the IP bus clock,
@@ -71,60 +71,35 @@ void PIT1_TIMER_HANDLER(void)
     __DSB();
 }
 
-/*!
- * @brief PTA10 pin interrupt handler.
- */
-void WAKEUP_GPIO_IRQ_HANDLER(void)
+void ACTION_NOTIFY_GPIO_IRQ_HANDLER(void)
 {
-    if ((1U << WAKEUP_GPIO_PIN) & PORT_GetPinsInterruptFlags(WAKEUP_GPIO_PORT))
+    if ((1U << ACTION_NOTIFY_GPIO_PIN) & PORT_GetPinsInterruptFlags(ACTION_NOTIFY_GPIO_PORT))
     {
-        /* Disable interrupt. */
-        //PORT_SetPinInterruptConfig(WAKEUP_GPIO_PORT, WAKEUP_GPIO_PIN, kPORT_InterruptOrDMADisabled);
-        PORT_ClearPinsInterruptFlags(WAKEUP_GPIO_PORT, (1U << WAKEUP_GPIO_PIN));
+        PORT_ClearPinsInterruptFlags(ACTION_NOTIFY_GPIO_PORT, (1U << ACTION_NOTIFY_GPIO_PIN));
     }
     /* Add for ARM errata 838869, affects Cortex-M4, Cortex-M4F Store immediate overlapping
     exception return operation might vector to incorrect interrupt */
     __DSB();
 }
 
-/**
- * Enter a critical section where logical time and the event queue are guaranteed
- * to not change unless they are changed within the critical section.
- * In platforms with threading support, this normally will be implemented
- * by acquiring a mutex lock. In platforms without threading support,
- * this can be implemented by disabling interrupts.
- * Users of this function must ensure that lf_init_critical_sections() is
- * called first and that lf_critical_section_exit() is called later.
- * @return 0 on success, platform-specific error number otherwise.
- */
 int lf_critical_section_enter(){
     regPrimask = DisableGlobalIRQ();
     return 0;
 }
 
-/**
- * Exit the critical section entered with lf_lock_time().
- * @return 0 on success, platform-specific error number otherwise.
- */
 int lf_critical_section_exit(){
     EnableGlobalIRQ(regPrimask);
     return 0;
 }
 
-/**
- * Notify any listeners that an event has been created.
- * The caller should call lf_critical_section_enter() before calling this function.
- * @return 0 on success, platform-specific error number otherwise.
- */
 int lf_notify_of_event(){
-    PRINTF("\r\nPhysical action \r\n");
-    GPIO_PortToggle(WAKEUP_GPIO, 1U << WAKEUP_GPIO_PIN);
+    
+    /* Generate action notification interrupt by toggling GPIO pin*/
+    GPIO_PortToggle(ACTION_NOTIFY_GPIO, 1U << ACTION_NOTIFY_GPIO_PIN);
+
     return 0;
 }
 
-/**
- * Initialize the LF clock. Must be called before using other clock-related APIs.
- */
 void lf_initialize_clock(void){
     pit_config_t pitConfig;
     pitConfig.enableRunInDebug = true;
@@ -134,102 +109,86 @@ void lf_initialize_clock(void){
     BOARD_InitBootClocks();
     BOARD_InitDebugConsole();
 
-    //Init PIT0 which is used as a free running counter
+    /* Setup LF clock countdown timer */
     PIT_Init(PIT_BASEADDR, &pitConfig);
     PIT_SetTimerPeriod(PIT_BASEADDR, PIT0_CHANNEL, MAX_TICKS);
     PIT_EnableInterrupts(PIT_BASEADDR, PIT0_CHANNEL, kPIT_TimerInterruptEnable);
     EnableIRQ(PIT0_IRQ_ID);
 
-    //Init PIT1 which is used for handling sleep interrupts
+    /* Setup sleep countdown timer */
     PIT_EnableInterrupts(PIT_BASEADDR, PIT1_CHANNEL, kPIT_TimerInterruptEnable);
     EnableIRQ(PIT1_IRQ_ID);
 
-    //Init GPIO pin interrupt
-    NVIC_EnableIRQ(WAKEUP_GPIO_IRQ);
-    PORT_SetPinInterruptConfig(WAKEUP_GPIO_PORT, WAKEUP_GPIO_PIN, WAKEUP_GPIO_IRQ_TYPE);
+    /* Setup action notification interrupt */
+    NVIC_EnableIRQ(ACTION_NOTIFY_GPIO_IRQ);
+    PORT_SetPinInterruptConfig(ACTION_NOTIFY_GPIO_PORT, ACTION_NOTIFY_GPIO_PIN, ACTION_NOTIFY_GPIO_IRQ_TYPE);
 
-    PRINTF("\r\nStarting PIT channel with frequency: %u\r\n", PIT_SOURCE_CLOCK);
+    /* Start counter for LF clock */
     PIT_StartTimer(PIT_BASEADDR, PIT0_CHANNEL);
 }
 
-/**
- * Fetch the value of an internal (and platform-specific) physical clock and 
- * store it in `t`.
- * 
- * Ideally, the underlying platform clock should be monotonic. However, the
- * core lib tries to enforce monotonicity at higher level APIs (see tag.h).
- * 
- * @return 0 for success, or -1 for failure
- */
 int lf_clock_gettime(instant_t* t){
+
+    /* Does the argument reference invalid memory? */
     if (t == NULL) {
-        // The t argument address references invalid memory
         return -1;
     }
+
+    /* Read tick value, ans substract since PIT counts down*/
     uint32_t now_us_hi_pre = _lf_time_us_high;
-    uint32_t ticks = MAX_TICKS - PIT_GetCurrentTimerCount(PIT_BASEADDR, PIT0_CHANNEL); //timer is counting down
+    uint32_t ticks = MAX_TICKS - PIT_GetCurrentTimerCount(PIT_BASEADDR, PIT0_CHANNEL);
     uint32_t now_us_hi_post = _lf_time_us_high;
 
     if (now_us_hi_pre != now_us_hi_post) {
-        //overflow occured, read new value
-        ticks = MAX_TICKS - PIT_GetCurrentTimerCount(PIT_BASEADDR, PIT0_CHANNEL); //timer is counting down
+        /* Count overflowed while reading, read new value */
+        ticks = MAX_TICKS - PIT_GetCurrentTimerCount(PIT_BASEADDR, PIT0_CHANNEL);
     }
 
-    // ticks to us: macro from fsl_common_arm.h
-    // us to ns by multiplying with 1000.
-    // t is an instant, which is int64_t. How to convert?
+    /* Combine the two counter values */
     uint64_t time_us = COMBINE_HI_LO(_lf_time_us_high, COUNT_TO_USEC(ticks, PIT_SOURCE_CLOCK));
+
+    /* Convert to nanoseconds */
     *t = ((instant_t)time_us) * 1000U;
-    //PRINTF("\r\nConverted finally to " PRINTF_TIME " ns (instant) \r\n", *t);
 
     return 0;
 }
 
-/**
- * Pause execution for a given number duration.
- * @return 0 if sleep was completed, or -1 if it was interrupted.
- */
 int lf_sleep(interval_t sleep_duration){
 
+    /* Initialize sleep completed to false */
     _lf_sleep_completed = false;
 
     lf_critical_section_exit();
 
+    /* Setup and start sleep countdown timer */
     PIT_SetTimerPeriod(PIT_BASEADDR, PIT1_CHANNEL, USEC_TO_COUNT(sleep_duration/1000LL, PIT_SOURCE_CLOCK));
     PIT_StartTimer(PIT_BASEADDR, PIT1_CHANNEL);
 
-    //low power mode - Exit upon interrupt, which can originate from several sources.
-    PRINTF("\r\nEntering wait mode \r\n");
+    /* Enter low power mode (Wait mode), exit upon any interrupt */
     SMC_PreEnterWaitModes();
     SMC_SetPowerModeWait(SMC_BASEADDR);
     SMC_PostExitWaitModes();
 
+    /* Recover normal power mode (Run mode) */
     SMC_SetPowerModeRun(SMC_BASEADDR);
     while (kSMC_PowerStateRun != SMC_GetPowerModeState(SMC))
     {
     }
 
-    //disable timer PIT1
+    /* Disable timer */
     PIT_StopTimer(PIT_BASEADDR, PIT1_CHANNEL);
-    PRINTF("\r\nExited wait mode \r\n");
+
     lf_critical_section_enter();
 
     if (_lf_sleep_completed) {
-        PRINTF("\r\nSleep completed \r\n");
+        /* Sleep was completed */
         return 0;
     } else {
-        PRINTF("\r\nSleep interrupted \r\n");
+        /* Sleep was interrupted by some interrupt */
         return -1;
     }
 }
 
-
-/**
- * @brief Sleep until the given wakeup time.
- * 
- * @param wakeup_time The time instant at which to wake up.
- * @return int 0 if sleep completed, or -1 if it was interrupted.
- */
 int lf_sleep_until(instant_t wakeup_time) {
 
     instant_t now;
