@@ -27,13 +27,6 @@
 /* Get source clock for PIT driver */
 #define PIT_SOURCE_CLOCK CLOCK_GetFreq(kCLOCK_BusClk)
 
-#define ACTION_NOTIFY_GPIO             GPIOA
-#define ACTION_NOTIFY_GPIO_PORT        PORTA
-#define ACTION_NOTIFY_GPIO_PIN         10
-#define ACTION_NOTIFY_GPIO_IRQ         PORTA_IRQn
-#define ACTION_NOTIFY_GPIO_IRQ_HANDLER PORTA_IRQHandler
-#define ACTION_NOTIFY_GPIO_IRQ_TYPE    kPORT_InterruptEitherEdge
-
 #define MAX_TICKS UINT32_MAX
 #define COMBINE_HI_LO(hi,lo) ((((uint64_t) hi) << 32) | ((uint64_t) lo))
 
@@ -71,17 +64,6 @@ void PIT1_TIMER_HANDLER(void)
     __DSB();
 }
 
-void ACTION_NOTIFY_GPIO_IRQ_HANDLER(void)
-{
-    if ((1U << ACTION_NOTIFY_GPIO_PIN) & PORT_GetPinsInterruptFlags(ACTION_NOTIFY_GPIO_PORT))
-    {
-        PORT_ClearPinsInterruptFlags(ACTION_NOTIFY_GPIO_PORT, (1U << ACTION_NOTIFY_GPIO_PIN));
-    }
-    /* Add for ARM errata 838869, affects Cortex-M4, Cortex-M4F Store immediate overlapping
-    exception return operation might vector to incorrect interrupt */
-    __DSB();
-}
-
 int lf_critical_section_enter(){
     regPrimask = DisableGlobalIRQ();
     return 0;
@@ -93,10 +75,6 @@ int lf_critical_section_exit(){
 }
 
 int lf_notify_of_event(){
-    
-    /* Generate action notification interrupt by toggling GPIO pin*/
-    GPIO_PortToggle(ACTION_NOTIFY_GPIO, 1U << ACTION_NOTIFY_GPIO_PIN);
-
     return 0;
 }
 
@@ -118,10 +96,6 @@ void lf_initialize_clock(void){
     /* Setup sleep countdown timer */
     PIT_EnableInterrupts(PIT_BASEADDR, PIT1_CHANNEL, kPIT_TimerInterruptEnable);
     EnableIRQ(PIT1_IRQ_ID);
-
-    /* Setup action notification interrupt */
-    NVIC_EnableIRQ(ACTION_NOTIFY_GPIO_IRQ);
-    PORT_SetPinInterruptConfig(ACTION_NOTIFY_GPIO_PORT, ACTION_NOTIFY_GPIO_PIN, ACTION_NOTIFY_GPIO_IRQ_TYPE);
 
     /* Start counter for LF clock */
     PIT_StartTimer(PIT_BASEADDR, PIT0_CHANNEL);
