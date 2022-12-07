@@ -1,3 +1,5 @@
+set pagination off
+
 # Segger: listen on port
 target remote localhost:2331
 
@@ -5,7 +7,8 @@ target remote localhost:2331
 monitor reset
 
 # Load symbols
-file ~/lf/nxp-support/debug/button.elf
+file ~/lf/nxp-support/debug/led_blinky.elf
 
 # load/flash application file
-load ~/lf/nxp-support/debug/button.elf
+load ~/lf/nxp-support/debug/led_blinky.elf
+

@@ -1,0 +1,41 @@
+target C {
+    threading: false,
+    build: "../scripts/build_nxp_unix.sh",
+};
+
+main reactor {
+    preamble {=
+	#include "../../SDK_2_12_0_FRDM-K22F/devices/MK22F51212/fsl_device_registers.h"
+	#include "../../SDK_2_12_0_FRDM-K22F/devices/MK22F51212/utilities/debug_console_lite/fsl_debug_console.h"
+	#include "../../SDK_2_12_0_FRDM-K22F/devices/MK22F51212/project_template/clock_config.h"
+	#include "../../SDK_2_12_0_FRDM-K22F/devices/MK22F51212/project_template/board.h"
+    #include "../../SDK_2_12_0_FRDM-K22F/devices/MK22F51212/project_template/pin_mux.h"
+	#include "../../SDK_2_12_0_FRDM-K22F/devices/MK22F51212/drivers/fsl_common.h"
+    #include "../../SDK_2_12_0_FRDM-K22F/devices/MK22F51212/drivers/fsl_port.h"
+
+    #define TIMER_GPIO             GPIOA
+    #define TIMER_GPIO_PORT        PORTA
+    #define TIMER_GPIO_PIN         10
+    #define TIMER_GPIO_IRQ         PORTA_IRQn
+    #define TIMER_GPIO_IRQ_HANDLER PORTA_IRQHandler
+    #define TIMER_GPIO_IRQ_TYPE    kPORT_InterruptEitherEdge
+
+    =}
+
+    timer t(5 sec,2 sec)
+
+    reaction(startup) {=
+        PRINTF("Starting in 5 sec...\r\n");
+        const gpio_pin_config_t config =
+        {
+            kGPIO_DigitalOutput,
+            0,
+        };
+        GPIO_PinInit(TIMER_GPIO, TIMER_GPIO_PIN, &config);
+    =}
+
+    reaction(t) {=
+        PRINTF("reaction\r\n");
+        GPIO_PortToggle(TIMER_GPIO, 1U << TIMER_GPIO_PIN);
+    =}
+}
