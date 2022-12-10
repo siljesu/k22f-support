@@ -18,7 +18,7 @@ SET(CMAKE_EXECUTABLE_LIBRARY_SUFFIX)
 # CURRENT DIRECTORY
 SET(ProjDirPath ${CMAKE_CURRENT_SOURCE_DIR})
 SET(ProjSDKPath ${ProjDirPath}/SDK_2_12_0_FRDM-K22F)
-SET(ProjName led_blinky)
+SET(ProjName PingPong)
 
 SET(EXECUTABLE_OUTPUT_PATH ${ProjDirPath}/${CMAKE_BUILD_TYPE})
 SET(LIBRARY_OUTPUT_PATH ${ProjDirPath}/${CMAKE_BUILD_TYPE})
@@ -32,9 +32,9 @@ include(${ProjDirPath}/flags.cmake)
 
 include(${ProjDirPath}/config.cmake)
 
-include_directories(${ProjDirPath}/src-gen/${ProjName}/core)
-include_directories(${ProjDirPath}/src-gen/${ProjName}/core/platform)
-include_directories(${ProjDirPath}/src-gen/${ProjName}/core/federated)
+include_directories(${ProjDirPath}/src-gen/micro/${ProjName}/core)
+include_directories(${ProjDirPath}/src-gen/micro/${ProjName}/core/platform)
+include_directories(${ProjDirPath}/src-gen/micro/${ProjName}/core/federated)
 set(LF_MAIN_TARGET ${ProjName})
 # Declare a new executable target and list all its sources
 
@@ -45,13 +45,13 @@ add_executable(${MCUX_SDK_PROJECT_NAME}
 "${ProjSDKPath}/boards/frdmk22f/project_template/clock_config.h"
 "${ProjSDKPath}/boards/frdmk22f/project_template/pin_mux.c"
 "${ProjSDKPath}/boards/frdmk22f/project_template/pin_mux.h"
-"${ProjDirPath}/src-gen/${ProjName}/${ProjName}.c"
-"${ProjDirPath}/src-gen/${ProjName}/core/platform/lf_nxp_support.c"
-"${ProjDirPath}/src-gen/${ProjName}/lib/schedule.c"
-"${ProjDirPath}/src-gen/${ProjName}/lib/util.c"
-"${ProjDirPath}/src-gen/${ProjName}/lib/tag.c"
-"${ProjDirPath}/src-gen/${ProjName}/lib/time.c"
-"${ProjDirPath}/src-gen/${ProjName}/core/mixed_radix.c"
+"${ProjDirPath}/src-gen/micro/${ProjName}/${ProjName}.c"
+"${ProjDirPath}/src-gen/micro/${ProjName}/core/platform/lf_nxp_support.c"
+"${ProjDirPath}/src-gen/micro/${ProjName}/lib/schedule.c"
+"${ProjDirPath}/src-gen/micro/${ProjName}/lib/util.c"
+"${ProjDirPath}/src-gen/micro/${ProjName}/lib/tag.c"
+"${ProjDirPath}/src-gen/micro/${ProjName}/lib/time.c"
+"${ProjDirPath}/src-gen/micro/${ProjName}/core/mixed_radix.c"
 )
 
 target_include_directories(${MCUX_SDK_PROJECT_NAME} PRIVATE

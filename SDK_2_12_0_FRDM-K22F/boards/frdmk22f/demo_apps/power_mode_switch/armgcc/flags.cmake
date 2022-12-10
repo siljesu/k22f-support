@@ -139,6 +139,10 @@ SET(CMAKE_EXE_LINKER_FLAGS_DEBUG " \
     -Xlinker \
     -Map=output.map \
     -Wl,--print-memory-usage \
+    -Xlinker \
+    --defsym=__stack_size__=0x4000 \
+    -Xlinker \
+    --defsym=__heap_size__=0x4000 \
     -T${ProjDirPath}/MK22FN512xxx12_flash.ld -static \
 ")
 SET(CMAKE_EXE_LINKER_FLAGS_RELEASE " \

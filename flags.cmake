@@ -31,6 +31,7 @@ SET(CMAKE_C_FLAGS_DEBUG " \
     -O0 \
     -mcpu=cortex-m4 \
     -Wall \
+    -Wno-format \
     -mfloat-abi=hard \
     -mfpu=fpv4-sp-d16 \
     -mthumb \

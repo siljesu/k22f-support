@@ -13,26 +13,32 @@ main reactor {
 	#include "../../SDK_2_12_0_FRDM-K22F/devices/MK22F51212/drivers/fsl_common.h"
     #include "../../SDK_2_12_0_FRDM-K22F/devices/MK22F51212/drivers/fsl_gpio.h"
     #include "../../SDK_2_12_0_FRDM-K22F/devices/MK22F51212/drivers/fsl_port.h"
+    #include "../../../../SDK_2_12_0_FRDM-K22F/devices/MK22F51212/drivers/fsl_smc.h"
+    #define SMC_BASEADDR SMC
     =}
 
-    timer t(1 sec,50 usec)
+    timer t(1 sec,2 sec)
+    state count:int(0);
 
     reaction(startup) {=
         PRINTF("Starting...\r\n");
-
-        gpio_pin_config_t LEDRGB_RED_config = {
-            .pinDirection = kGPIO_DigitalOutput,
-            .outputLogic = 0U
-        };
-        /* Initialize GPIO functionality on pin PTA1 (pin 23)  */
-        GPIO_PinInit(BOARD_LEDRGB_RED_GPIO, BOARD_LEDRGB_RED_PIN, &LEDRGB_RED_config);
-
-        /* PORTA1 (pin 23) is configured as PTA1 */
-        PORT_SetPinMux(BOARD_LEDRGB_RED_PORT, BOARD_LEDRGB_RED_PIN, kPORT_MuxAsGpio);
-
     =}
 
     reaction(t) {=
-        GPIO_PortToggle(BOARD_LEDRGB_RED_GPIO, 1u << BOARD_LEDRGB_RED_PIN);
+        if (self->count == 1){
+            /* Enter low power mode (Wait mode), exit upon any interrupt */
+            SMC_PreEnterWaitModes();
+            SMC_SetPowerModeWait(SMC_BASEADDR);
+            self->count = 0;
+        } else {
+            interval_t start = lf_time_physical_elapsed();
+            SMC_PostExitWaitModes();
+            /* Recover normal power mode (Run mode) */
+            SMC_SetPowerModeRun(SMC_BASEADDR);
+            while (kSMC_PowerStateRun != SMC_GetPowerModeState(SMC))
+            {
+            }
+            self->count = 1;
+        }
     =}
 }
