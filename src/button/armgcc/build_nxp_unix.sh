@@ -22,8 +22,12 @@ cp $PROJECT_ROOT/platform/platform.h $LF_SOURCE_GEN_DIRECTORY/include/core/
 cp $PROJECT_ROOT/platform/reactor.c $LF_SOURCE_GEN_DIRECTORY/include/core/
 cp $PROJECT_ROOT/platform/reactor_common.c $LF_SOURCE_GEN_DIRECTORY/include/core/
 
+# Copy project files
+cp $PROJECT_ROOT/src/button/*.c $LF_SOURCE_GEN_DIRECTORY/
+cp $PROJECT_ROOT/src/button/*.h $LF_SOURCE_GEN_DIRECTORY/
+
 # Build project
-cd $PROJECT_ROOT
+cd $PROJECT_ROOT/src/button/armgcc
 
 if [ -d "CMakeFiles" ];then rm -rf CMakeFiles; fi
 if [ -f "Makefile" ];then rm -f Makefile; fi

@@ -7,8 +7,8 @@ target remote localhost:2331
 monitor reset
 
 # Load symbols
-file ~/lf/nxp-support/debug/PingPong.elf
+file debug/PingPong.elf
 
 # load/flash application file
-load ~/lf/nxp-support/debug/PingPong.elf
+load debug/PingPong.elf
 

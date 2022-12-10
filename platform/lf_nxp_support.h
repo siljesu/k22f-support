@@ -3,7 +3,7 @@
 #include <time.h>   // For CLOCK_MONOTONIC
 #include <stdbool.h>
 #include <inttypes.h>
-#include "../../../SDK_2_12_0_FRDM-K22F/devices/MK22F51212/utilities/debug_console_lite/fsl_debug_console.h"
+#include "../../../../SDK_2_12_0_FRDM-K22F/devices/MK22F51212/utilities/debug_console_lite/fsl_debug_console.h"
 
 #define PRINTF_TIME "%" PRId64
 #define PRINTF_MICROSTEP "%" PRIu32

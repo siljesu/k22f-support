@@ -8,12 +8,12 @@
 #include "../platform.h"
 #include "../utils/util.h"
 
-#include "../../../../SDK_2_12_0_FRDM-K22F/devices/MK22F51212/project_template/pin_mux.h"
-#include "../../../../SDK_2_12_0_FRDM-K22F/devices/MK22F51212/project_template/clock_config.h"
-#include "../../../../SDK_2_12_0_FRDM-K22F/devices/MK22F51212/project_template/board.h"
-#include "../../../../SDK_2_12_0_FRDM-K22F/devices/MK22F51212/drivers/fsl_pit.h"
-#include "../../../../SDK_2_12_0_FRDM-K22F/devices/MK22F51212/drivers/fsl_port.h"
-#include "../../../../SDK_2_12_0_FRDM-K22F/devices/MK22F51212/drivers/fsl_smc.h"
+#include "../../../../../SDK_2_12_0_FRDM-K22F/devices/MK22F51212/project_template/pin_mux.h"
+#include "../../../../../SDK_2_12_0_FRDM-K22F/devices/MK22F51212/project_template/clock_config.h"
+#include "../../../../../SDK_2_12_0_FRDM-K22F/devices/MK22F51212/project_template/board.h"
+#include "../../../../../SDK_2_12_0_FRDM-K22F/devices/MK22F51212/drivers/fsl_pit.h"
+#include "../../../../../SDK_2_12_0_FRDM-K22F/devices/MK22F51212/drivers/fsl_port.h"
+#include "../../../../../SDK_2_12_0_FRDM-K22F/devices/MK22F51212/drivers/fsl_smc.h"
 
 #define PIT_BASEADDR PIT
 #define SMC_BASEADDR SMC

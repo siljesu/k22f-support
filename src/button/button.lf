@@ -1,20 +1,20 @@
 target C {
     threading: false,
-    build: "../scripts/build_nxp_unix.sh",
+    build: "armgcc/build_nxp_unix.sh",
     timeout: 10 secs,
 };
 
 main reactor {
 
     preamble {=
-        #include "../../SDK_2_12_0_FRDM-K22F/devices/MK22F51212/fsl_device_registers.h"
-        #include "../../SDK_2_12_0_FRDM-K22F/devices/MK22F51212/utilities/debug_console_lite/fsl_debug_console.h"
-        #include "../../SDK_2_12_0_FRDM-K22F/devices/MK22F51212/project_template/pin_mux.h"
-        #include "../../SDK_2_12_0_FRDM-K22F/devices/MK22F51212/project_template/clock_config.h"
-        #include "../../SDK_2_12_0_FRDM-K22F/devices/MK22F51212/project_template/board.h"
-        #include "../../SDK_2_12_0_FRDM-K22F/devices/MK22F51212/drivers/fsl_common.h"
-        #include "../../SDK_2_12_0_FRDM-K22F/devices/MK22F51212/drivers/fsl_port.h"
-        #include "../../SDK_2_12_0_FRDM-K22F/devices/MK22F51212/drivers/fsl_gpio.h"
+        #include "../../../SDK_2_12_0_FRDM-K22F/devices/MK22F51212/fsl_device_registers.h"
+        #include "../../../SDK_2_12_0_FRDM-K22F/devices/MK22F51212/utilities/debug_console_lite/fsl_debug_console.h"
+        #include "../../../SDK_2_12_0_FRDM-K22F/devices/MK22F51212/drivers/fsl_common.h"
+        #include "../../../SDK_2_12_0_FRDM-K22F/devices/MK22F51212/drivers/fsl_port.h"
+        #include "../../../SDK_2_12_0_FRDM-K22F/devices/MK22F51212/drivers/fsl_gpio.h"
+        #include "pin_mux.h"
+        #include "clock_config.h"
+        #include "board.h"
     
         #define APP_WAKEUP_BUTTON_GPIO        BOARD_SW2_GPIO
         #define APP_WAKEUP_BUTTON_PORT        BOARD_SW2_PORT
