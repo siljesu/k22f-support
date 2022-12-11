@@ -10,5 +10,5 @@ monitor reset
 file debug/hello_world.elf
 
 # load/flash application file
-load hello_world.elf
+load debug/hello_world.elf
 
