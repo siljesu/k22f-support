@@ -39,7 +39,7 @@ target C {
 
 import BenchmarkRunner from "../BenchmarkRunner.lf";
 
-reactor Ping(count:int(10000)) {
+reactor Ping(count:int(100000)) {
     input receive:int;
     input start:bool;
     output send:int;
@@ -59,7 +59,7 @@ reactor Ping(count:int(10000)) {
         }
     =}
 }
-reactor Pong(expected:int(10000)) {
+reactor Pong(expected:int(100000)) {
     input receive:int;
     output send:int;
     input finish: bool;
@@ -84,7 +84,7 @@ reactor Pong(expected:int(10000)) {
 /*[[[cog
 cog.outl(f'main reactor PingPong(numIterations:int({numIterations}), count:int({count}))')
 ]]] */
-main reactor PingPong(numIterations:int(12), count:int(10000))
+main reactor PingPong(numIterations:int(12), count:int(100000))
 /// [[[end]]]
 {
     runner = new BenchmarkRunner(num_iterations=numIterations);
