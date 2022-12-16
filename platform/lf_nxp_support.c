@@ -19,10 +19,9 @@
 #define SMC_BASEADDR SMC
 #define PIT0_CHANNEL  kPIT_Chnl_0
 #define PIT1_CHANNEL  kPIT_Chnl_1
-#define PIT0_OVERFLOW_HANDLER   PIT0_IRQHandler
-#define PIT1_TIMER_HANDLER   PIT1_IRQHandler
+#define PIT2_CHANNEL  kPIT_Chnl_2
+#define PIT0_TIMER_HANDLER   PIT0_IRQHandler
 #define PIT0_IRQ_ID        PIT0_IRQn
-#define PIT1_IRQ_ID        PIT1_IRQn
 
 /* Get source clock for PIT driver */
 #define PIT_SOURCE_CLOCK CLOCK_GetFreq(kCLOCK_BusClk)
@@ -30,29 +29,13 @@
 #define MAX_TICKS UINT32_MAX
 #define COMBINE_HI_LO(hi,lo) ((((uint64_t) hi) << 32) | ((uint64_t) lo))
 
-static volatile uint32_t _lf_time_us_high = 0;
 static volatile uint32_t regPrimask;
 volatile bool _lf_sleep_completed = false;
 
-void PIT0_OVERFLOW_HANDLER(void)
+void PIT0_TIMER_HANDLER(void)
 {
     /* Clear interrupt flag.*/
     PIT_ClearStatusFlags(PIT_BASEADDR, PIT0_CHANNEL, kPIT_TimerFlag);
-
-    /* Increment highest 32 bit clock value */
-    _lf_time_us_high += 1;
-    
-    /* Added for, and affects, all PIT handlers. For CPU clock which is much larger than the IP bus clock,
-     * CPU can run out of the interrupt handler before the interrupt flag being cleared, resulting in the
-     * CPU's entering the handler again and again. Adding DSB can prevent the issue from happening.
-     */
-    __DSB();
-}
-
-void PIT1_TIMER_HANDLER(void)
-{
-    /* Clear interrupt flag.*/
-    PIT_ClearStatusFlags(PIT_BASEADDR, PIT1_CHANNEL, kPIT_TimerFlag);
 
     /* Set sleep completed flag */
     _lf_sleep_completed = 1;
@@ -81,24 +64,26 @@ int lf_notify_of_event(){
 void lf_initialize_clock(void){
     pit_config_t pitConfig;
     pitConfig.enableRunInDebug = true;
+    PIT_Init(PIT_BASEADDR, &pitConfig);  
 
     /* Init board hardware. */
     BOARD_InitBootPins();
     BOARD_InitBootClocks();
     BOARD_InitDebugConsole();
 
-    /* Setup LF clock countdown timer */
-    PIT_Init(PIT_BASEADDR, &pitConfig);
-    PIT_SetTimerPeriod(PIT_BASEADDR, PIT0_CHANNEL, MAX_TICKS);
+    /* Setup sleep countdown timer */  
     PIT_EnableInterrupts(PIT_BASEADDR, PIT0_CHANNEL, kPIT_TimerInterruptEnable);
     EnableIRQ(PIT0_IRQ_ID);
 
-    /* Setup sleep countdown timer */
-    PIT_EnableInterrupts(PIT_BASEADDR, PIT1_CHANNEL, kPIT_TimerInterruptEnable);
-    EnableIRQ(PIT1_IRQ_ID);
+    /* Initialize two chained 32-bit counters on channel 1 and 2 */
+    PIT_SetTimerPeriod(PIT_BASEADDR, PIT1_CHANNEL, MAX_TICKS);
+    PIT_SetTimerPeriod(PIT_BASEADDR, PIT2_CHANNEL, MAX_TICKS);
+    PIT_SetTimerChainMode(PIT_BASEADDR, PIT2_CHANNEL, true);
 
-    /* Start counter for LF clock */
-    PIT_StartTimer(PIT_BASEADDR, PIT0_CHANNEL);
+    /* Start counters for LF clock */
+    PIT_StartTimer(PIT_BASEADDR, PIT2_CHANNEL);
+    PIT_StartTimer(PIT_BASEADDR, PIT1_CHANNEL);
+    
 }
 
 int lf_clock_gettime(instant_t* t){
@@ -109,20 +94,20 @@ int lf_clock_gettime(instant_t* t){
     }
 
     /* Read tick value, ans substract since PIT counts down*/
-    uint32_t now_us_hi_pre = _lf_time_us_high;
-    uint32_t ticks = MAX_TICKS - PIT_GetCurrentTimerCount(PIT_BASEADDR, PIT0_CHANNEL);
-    uint32_t now_us_hi_post = _lf_time_us_high;
+    uint32_t ticks_high_pre = (MAX_TICKS - 1) - PIT_GetCurrentTimerCount(PIT_BASEADDR, PIT2_CHANNEL);
+    uint32_t ticks_low = (MAX_TICKS - 1) - PIT_GetCurrentTimerCount(PIT_BASEADDR, PIT1_CHANNEL);
+    uint32_t ticks_high = (MAX_TICKS - 1) - PIT_GetCurrentTimerCount(PIT_BASEADDR, PIT2_CHANNEL);
 
-    if (now_us_hi_pre != now_us_hi_post) {
+    if (ticks_high_pre != ticks_high) {
         /* Count overflowed while reading, read new value */
-        ticks = MAX_TICKS - PIT_GetCurrentTimerCount(PIT_BASEADDR, PIT0_CHANNEL);
+        ticks_low = MAX_TICKS - PIT_GetCurrentTimerCount(PIT_BASEADDR, PIT1_CHANNEL);
     }
 
     /* Combine the two counter values */
-    uint64_t time_us = COMBINE_HI_LO(_lf_time_us_high, COUNT_TO_USEC(ticks, PIT_SOURCE_CLOCK));
+    uint64_t total_ticks = COMBINE_HI_LO(ticks_high, ticks_low);
 
     /* Convert to nanoseconds */
-    *t = ((instant_t)time_us) * 1000U;
+    *t = ((instant_t)COUNT_TO_USEC(total_ticks, PIT_SOURCE_CLOCK)) * 1000U;
 
     return 0;
 }
@@ -135,8 +120,8 @@ int lf_sleep(interval_t sleep_duration){
     lf_critical_section_exit();
 
     /* Setup and start sleep countdown timer */
-    PIT_SetTimerPeriod(PIT_BASEADDR, PIT1_CHANNEL, USEC_TO_COUNT(sleep_duration/1000LL, PIT_SOURCE_CLOCK));
-    PIT_StartTimer(PIT_BASEADDR, PIT1_CHANNEL);
+    PIT_SetTimerPeriod(PIT_BASEADDR, PIT0_CHANNEL, USEC_TO_COUNT(sleep_duration/1000LL, PIT_SOURCE_CLOCK));
+    PIT_StartTimer(PIT_BASEADDR, PIT0_CHANNEL);
 
     /* Enter low power mode (Wait mode), exit upon any interrupt */
     SMC_PreEnterWaitModes();
@@ -150,7 +135,7 @@ int lf_sleep(interval_t sleep_duration){
     }
 
     /* Disable timer */
-    PIT_StopTimer(PIT_BASEADDR, PIT1_CHANNEL);
+    PIT_StopTimer(PIT_BASEADDR, PIT0_CHANNEL);
 
     lf_critical_section_enter();
 

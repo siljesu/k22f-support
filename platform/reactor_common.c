@@ -2062,7 +2062,7 @@ void initialize(void) {
     #endif
 
     #if defined(ARDUINO) || defined(PLATFORM_NXP)
-    printf("---- Start execution at time " PRINTF_TIME "us\n", physical_start_time);
+    printf("---- Start execution at time " PRINTF_TIME "ns\n", physical_start_time);
     #else
     struct timespec physical_time_timespec = {physical_start_time / BILLION, physical_start_time % BILLION};
 
