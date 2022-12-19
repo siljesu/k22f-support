@@ -1,7 +1,6 @@
 target C {
     threading: false,
     build: "armgcc/build_nxp_unix.sh",
-    timeout: 10 secs,
 };
 
 main reactor {

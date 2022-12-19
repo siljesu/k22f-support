@@ -42,7 +42,7 @@ THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #ifndef PLATFORM_H
 #define PLATFORM_H
 
-#include "platform/lf_nxp_support.h"
+#include "platform/lf_k22f_support.h"
 
 
 #ifdef NUMBER_OF_WORKERS

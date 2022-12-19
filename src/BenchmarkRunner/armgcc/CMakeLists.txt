@@ -46,7 +46,7 @@ add_executable(${MCUX_SDK_PROJECT_NAME}
 "${ProjDirPath}/../../../src-gen/BenchmarkRunner/micro/${ProjName}/clock_config.h"
 "${ProjDirPath}/../../../src-gen/BenchmarkRunner/micro/${ProjName}/pin_mux.h"
 "${ProjDirPath}/../../../src-gen/BenchmarkRunner/micro/${ProjName}/${ProjName}.c"
-"${ProjDirPath}/../../../src-gen/BenchmarkRunner/micro/${ProjName}/core/platform/lf_nxp_support.c"
+"${ProjDirPath}/../../../src-gen/BenchmarkRunner/micro/${ProjName}/core/platform/lf_k22f_support.c"
 "${ProjDirPath}/../../../src-gen/BenchmarkRunner/micro/${ProjName}/lib/schedule.c"
 "${ProjDirPath}/../../../src-gen/BenchmarkRunner/micro/${ProjName}/lib/util.c"
 "${ProjDirPath}/../../../src-gen/BenchmarkRunner/micro/${ProjName}/lib/tag.c"

@@ -15,7 +15,7 @@ main reactor {
     #include "pin_mux.h"
     =}
 
-    timer t(1 sec,1 sec)
+    timer t(1 sec,1 msec)
 
     reaction(startup) {=
         PRINTF("Starting...\r\n");

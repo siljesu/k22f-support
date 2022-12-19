@@ -9,7 +9,7 @@
 #define PRINTF_MICROSTEP "%" PRIu32
 #define PRINTF_TAG "(" PRINTF_TIME ", " PRINTF_MICROSTEP ")"
 #define printf PRINTF
-#define PLATFORM_NXP 1
+#define PLATFORM_K22F 1
 
 /**
  * Time instant. Both physical and logical times are represented

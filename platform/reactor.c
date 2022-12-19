@@ -356,7 +356,7 @@ int lf_reactor_c_main(int argc, const char* argv[]) {
         // As a consequence, we need to also trap ctrl-C, which issues a SIGINT,
         // and cause it to call exit.
         // We wrap this statement since certain Arduino flavors don't support signals.
-        #if defined(ARDUINO)||defined(PLATFORM_NXP)
+        #if defined(ARDUINO)||defined(PLATFORM_K22F)
         signal(SIGINT, exit);
         #endif
         
